@@ -1,0 +1,50 @@
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      sudo: required
+      services: docker
+      language: generic
+      env: swift=4.0
+    - os: linux
+      dist: trusty
+      sudo: required
+      services: docker
+      language: generic
+      env: swift=3.1
+    - os: osx
+      osx_image: xcode9.2
+      language: objective-c
+      env: project=Promise scheme=Promise-Package
+    - os: osx
+      osx_image: xcode8.3
+      language: objective-c
+      env: project=Promise scheme=Promise
+before_install:
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      gem install slather --no-ri --no-rdoc;
+      brew update && brew install swiftlint;
+      swift --version;
+      swift package --version;
+      swift package generate-xcodeproj --enable-code-coverage;
+    fi;
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      docker pull swift:$swift;
+      docker pull norionomura/swiftlint:swift-$swift;
+    fi;
+script:
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      swiftlint;
+      xcodebuild -scheme $scheme -sdk macosx -configuration Release -derivedDataPath .xcodebuild -enableCodeCoverage YES -quiet build-for-testing;
+      xcodebuild -scheme $scheme -sdk macosx -configuration Release -derivedDataPath .xcodebuild -enableCodeCoverage YES test-without-building;
+    fi;
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      docker run -v $(pwd):/package -w /package norionomura/swiftlint:swift-$swift /bin/sh -c "swiftlint";
+      docker run -v $(pwd):/package -w /package swift:$swift /bin/sh -c "swift test";
+    fi;
+after_success:
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      slather coverage --show                                       --scheme $scheme --configuration Release --binary-basename $project --build-directory .xcodebuild $project.xcodeproj;
+      slather coverage --cobertura-xml --output-directory .coverage --scheme $scheme --configuration Release --binary-basename $project --build-directory .xcodebuild $project.xcodeproj;
+      bash <(curl -s https://codecov.io/bash) -f .coverage/cobertura.xml -X coveragepy -X gcov -X xcode;
+    fi;

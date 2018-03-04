@@ -1,0 +1,9 @@
+disabled_rules:
+  - file_length
+  - force_cast
+
+statement_position:
+  statement_mode: uncuddled_else
+function_body_length: 80
+line_length: 140
+cyclomatic_complexity: 20

@@ -1,0 +1,20 @@
+pipeline:
+  lint:
+    image: norionomura/swiftlint:swift-${swift}
+    commands:
+      - swiftlint
+
+  build:
+    image: swift:${swift}
+    commands:
+      - swift build
+
+  test:
+    image: swift:${swift}
+    commands:
+      - swift test
+
+matrix:
+  swift:
+    - 4.0
+    - 3.1
